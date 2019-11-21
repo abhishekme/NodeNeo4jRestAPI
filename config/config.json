@@ -1,0 +1,18 @@
+{
+  "development": {
+    "username": "neo4j",
+    "password": "root",
+    "host": "bolt://localhost:7687",
+    "base_url": "http://localhost:7474",
+    "api_path": "/api/v0",
+    "jwtTokenKey": "scottBengalTiger"
+  },
+  "production": {
+    "username": "root",
+    "password": null,
+    "database": "database_production",
+    "host": "127.0.0.1",
+    "dialect": "mysql",
+    "operatorsAliases": false
+  }
+}
