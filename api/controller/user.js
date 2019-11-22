@@ -1,19 +1,23 @@
 'use strict'
 
-
-var passwordValidator           = require('password-validator');
-//var uuidv1                      = require('uuid/v1') ;
-var bCrypt                      = require('bcrypt');
-var userController              = require('./user');
-var constants                   = require('../../config/constants');
-const jwt                       = require('jsonwebtoken');
 const { body,validationResult } = require('express-validator');
 const env                       = process.env.NODE_ENV || 'development';
 const config                    = require('../../config/config.json')[env];
+const constants                 = require('../../config/constants');
 const variableDefined           = constants[0].application;
 const theUser                   = require('../models/');
+const jwt                       = require('jsonwebtoken');
+const encryption                = require("../utilities/encrypt");
+const crypto = require('crypto');
+const key = crypto.randomBytes(32);
+const iv = crypto.randomBytes(16);
 //const theUserModel              = require('../models/userModel');
-const theContr                  = userController;
+
+var passwordValidator           = require('password-validator');
+//var uuidv1                    = require('uuid/v1') ;
+var bCrypt                      = require('bcrypt');
+var userController              = require('./user');
+var theContr                    = userController;
 var schemaPassword              = new passwordValidator();
 
 //-----------------------------------------------------------------------
@@ -36,12 +40,20 @@ exports.validate = (method) => {
           body('email', variableDefined.variables.validation_required.email_required).exists().isEmail()
          ]
       }
+      case 'changePassword' : {
+        return [ 
+           body('old_password', variableDefined.variables.validation_required.password_required).exists(),
+           body('new_password', variableDefined.variables.validation_required.password_required).exists(),
+           body('confirm_password', variableDefined.variables.validation_required.password_required).exists(),
+          ]   
+      }
       case 'login' : {
         return [ 
            body('email', variableDefined.variables.validation_required.email_required).exists().isEmail(),
            body('password', variableDefined.variables.validation_required.password_required).exists(),
           ]   
-       }
+      }
+
       case 'update' : {
         return [ 
            body('first_name', variableDefined.variables.validation_required.first_name_required).exists(),
@@ -62,8 +74,14 @@ exports.validate = (method) => {
     var validationErrMesg = [];
 
     //Password checking
-    if(fromSrc != undefined && (fromSrc == 'create' || fromSrc == 'update')){
-        var getPassword = req.body.password;
+    if(fromSrc != undefined && (fromSrc == 'create' || fromSrc == 'update' || fromSrc == 'change-password')){
+        var getPassword = '';
+
+        getPassword = req.body.password;
+        if(fromSrc == 'change-password'){
+            getPassword = req.body.new_password;
+        }
+        
         schemaPassword
             .is().min(5)
             .is().max(15)
@@ -76,7 +94,7 @@ exports.validate = (method) => {
             validationErr.push({
                 value: getPassword,
                 msg: variableDefined.variables.validation_required.password_strength_step2,
-                param: 'password',
+                param: (fromSrc == 'change-password') ? 'new_password' : 'password',
                 location: 'body'
             });
         }
@@ -105,12 +123,13 @@ exports.hashPassword  = function(password){
     var saltRounds = 10;
     return bCrypt.hashSync(password, saltRounds);
 }
+//(DBPassword, Userpassword)
 exports.validPassword = function(Userpassword, DBPassword) {
-    //console.log('user pass/db pass: ', this.hashPassword(Userpassword), " - ", DBPassword);
-    return bCrypt.compareSync(Userpassword, DBPassword);
+    console.log('user pass/db pass: ', theContr.hashPassword(Userpassword), " - ", DBPassword);
+    return bCrypt.compareSync(DBPassword, theContr.hashPassword(Userpassword));
 }
 
-exports.createLogin  =  async function(req, res){
+exports.createLogin  =  async(req, res) => {
     var bodyJson    = {};
     var postBody    = req.body || null;
     var findRecord  = null;
@@ -137,7 +156,7 @@ exports.createLogin  =  async function(req, res){
                                                 password: result.records[0]._fields[0].properties.password
                                             }
                         var dbPassword = result.records[0]._fields[0].properties.password;
-                        if(!theContr.validPassword(postBody.password, dbPassword)){
+                        if(encryption.decrypt(dbPassword) != postBody.password){
                             return res.status(400).json({ message: variableDefined.variables.validation_required.password_invalid, HTTP_Status:400, APP_Status : 0,record: foundRec });
                         }
                         //Found valid user and allow for login with token
@@ -147,16 +166,19 @@ exports.createLogin  =  async function(req, res){
                                 email   : postBody.email,
                                 id      : result.records[0]._fields[0].identity.low       
                             },
-                            config.jwtTokenKey
+                            config.jwtTokenKey,
+                            {
+                                expiresIn: 60000
+                            }
                         );              
-                        return res.status(200).json({ message: variableDefined.variables.login_success,HTTP_Status:200, APP_Status:1, record: foundRec, authToken: token});
+                        return res.status(200).json({ message: variableDefined.variables.login_success, HTTP_Status:200, APP_Status:1, record: foundRec, authToken: token});
                     }else{
-                        return res.status(400).json({ message: variableDefined.variables.validation_required.email_not_exists, status:0, record: []});    
+                        return res.status(400).json({ message: variableDefined.variables.validation_required.email_not_exists, HTTP_Status:400, APP_Status:0, record: []});    
                     }                
                 });
             }
             catch(err){
-                console.log('catch Error: ', err);
+                return res.status(400).json({ message: variableDefined.variables.unhandledError, HTTP_Status:400, APP_Status:0, error: err});
             }
             finally{
                 //Do the needful
@@ -165,8 +187,77 @@ exports.createLogin  =  async function(req, res){
     }
 }
 
-exports.changePassword     =  function(req, res){
+exports.changePassword  = async(req, res) => {
+    var bodyJson    = {};
+    var postBody    = req.body || null;
+    var findRecord  = null;
+    //Add required validation
+    var validReturn = theContr.apiValidation(req, res, 'change-password');
+    if(validReturn) return;
     
+    let token       = req.headers['authorization'];
+    let userRecord  = {};   let foundRec = {};
+    if(typeof postBody === 'object'){
+        if(postBody.new_password != postBody.confirm_password){
+            return res.status(409).json({ message: variableDefined.variables.validation_required.password_match, status:0, HTTP_Status:409});
+        }
+        await jwt.verify(token, config.jwtTokenKey, (err, decoded) => {
+            userRecord  =   decoded;
+        });
+        //Get Record By Email
+        bodyJson['emailParam']          = userRecord.email;
+        var graphMatchQL    = "MATCH (n:User) WHERE (n.email = $emailParam) RETURN n";
+        try{
+        await theUser.neo4J 
+            .run(graphMatchQL, bodyJson)
+            .then(function (result){
+                if(result.records != undefined && result.records.length){
+                    //console.log("Exists Records", result.records[0]._fields[0] );
+                    foundRec    =   result.records[0]._fields[0];
+                }                
+            });
+        }
+        finally{
+            //Do the needful
+        };
+        if(typeof foundRec === 'object' && foundRec != null){
+            //console.log('Found Record: ', foundRec);
+            var DBPassword = foundRec.properties.password;
+            foundRec    =   {
+                id: foundRec.identity.low, 
+                username:foundRec.properties.username,
+                email:foundRec.properties.email 
+            }            
+            var UserNewPassword    =  encryption.encrypt(postBody.new_password);
+            var UserOldPassword    =  encryption.encrypt(postBody.old_password);
+            //console.log('Oldpassword ',UserOldPassword," :: ", UserNewPassword);
+            //console.log("new password " , " :: ", UserNewPassword , " Decrypt ", encryption.decrypt(DBPassword));
+            
+            if(postBody.old_password == postBody.new_password){
+                return res.status(400).json({ message: variableDefined.variables.validation_required.password_equal, HTTP_Status:400, APP_Status : 0,record: foundRec });                
+            }
+            if(encryption.decrypt(DBPassword) != postBody.old_password){
+                return res.status(400).json({ message: variableDefined.variables.validation_required.password_invalid, HTTP_Status:400, APP_Status : 0,record: foundRec });
+            }
+            //Update DB Password with New Password
+            bodyJson['passwordParam']  = UserNewPassword;
+            var graphUpdateQL    = "MATCH (n:User { email : $emailParam }) SET n.password = $passwordParam RETURN n";
+            try{
+            await theUser.neo4J 
+                .run(graphUpdateQL, bodyJson) 
+                .then(function (result){                
+                    //console.log('Update Password: ', result.records[0]._fields[0]);
+                    foundRec = result.records[0]._fields[0].properties;
+                    return res.status(400).json({ message: variableDefined.variables.validation_required.password_update, HTTP_Status:200, APP_Status : 0,record: foundRec });
+                });
+            }
+            finally{
+                //Do the needful
+            };
+
+        } 
+
+    }
 }
 
 exports.getData     =  function(req, res){
@@ -183,14 +274,14 @@ exports.getData     =  function(req, res){
                     }   
                    dataRecord.push(record._fields[0].properties);
                });              
-               return res.status(400).json({ message: "List Record", status:1, record:dataRecord });
+               return res.status(400).json({ message: variableDefined.variables.listing_record, status:1, record:dataRecord });
            })      
            .catch(function(err){
-            return res.status(400).json({ message: "List Database Error", status:0, error:err });
+            return res.status(400).json({ message: variableDefined.variables.unhandledError, status:0, error:err });
         });           
         theUser.neo4J.close();
 }
-exports.createData  =  async function(req, res){
+exports.createData  =  async(req, res) => {
     var bodyJson    = {};
     var postBody    = req.body || null;
     var findRecord  = null;
@@ -248,10 +339,10 @@ exports.createData  =  async function(req, res){
             .run(graphQL, bodyJson)           
             .then(function (result){                            
                console.log("Insert Record", result);
-                return res.status(400).json({ message: "Insert Record", status:1, record:result.summary });
+                return res.status(400).json({ message: variableDefined.variables.insert_record, status:1, record:result.summary });
            })
            .catch(function(err){
-                return res.status(400).json({ message: "Insert Database Error", status:0, error:err });
+                return res.status(400).json({ message: variableDefined.variables.unhandledError, status:0, error:err });
         });
     }               
     theUser.neo4J.close();

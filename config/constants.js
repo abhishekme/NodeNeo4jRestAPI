@@ -14,6 +14,12 @@ module.exports  =
             "contentType" : {
                 "urlencode"                     : "application/x-www-form-urlencoded",
                 "formdata"                      : "multipart/form-data",
+            },
+            "auth"        : {
+                "token_invalid"                 : "Token is not valid",
+                "token_invalid_user"            : "Token is not valid for the user",
+                "token_not_enter"               : "Auth token is not supplied",
+                "token_header"                  : "Header authentication invalid[should be enter valid 'authorization' AND 'userid']",
             },       
             "variables": {
                 "validation_required":          {
@@ -24,9 +30,12 @@ module.exports  =
                 "email_or_username_exists"      : "Username/Email Exists! please try another",
                 "email_not_exists"              : "Email Not Exists!",
                 "password_invalid"              : "Password is invalid, please try again",
+                "password_equal"                : "New and Old Password should different",
+                "password_match"                : "Confirm Password is invalid, please try again",
                 "password_required"             : "Password is required",
                 "password_strength_step1"       : "Should be minimum 5 and maximum 15 character long.",
                 "password_strength_step2"       : "Password should not be empty, minimum 5 characters, at least one capital and small letter, one number and one special chracter",
+                "password_update"               : "Update Password Successfully",
                 },
 
                 "login_success"                 : "Login Success",
@@ -52,7 +61,10 @@ module.exports  =
                 "csvFileUploaded"               :   "File uploaded succesfully",
                 "csvFileImportError"            :   "Please upload only csv[.csv] file",
 
-                "unhandledError"                :   "Unhanled API server Error!"
+                "listing_record"                :   "Listing Record",
+                "insert_record"                 :   "Record Inserted Successfully",
+
+                "unhandledError"                :   "Unhanled API server(neo4j) Error!"
             },
             "exportTable" : {
                 "userCsvHeader" : [

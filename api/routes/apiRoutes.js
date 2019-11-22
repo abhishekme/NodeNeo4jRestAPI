@@ -7,19 +7,10 @@ const variableDefined   = constants[0].application;
 
 module.exports = function(app) {
 
-//Check Express Middleware
-function isAuth(req, res, next){
-    if(req.headers['userToken'] ===  undefined ){
-        res.json({message: variableDefined.variables.logged_out, status:0});
-    return; // return undefined
-    }
-    return next();  //HTTP request handlers
-}
-
 app.route('/get-user')
     .get(middleware.checkToken, userController.getData)
 app.route('/change-password')
-    .get(middleware.checkToken, userController.changePassword)
+    .post(middleware.checkToken, userController.validate('changePassword'), userController.changePassword)
 app.route('/create-user')
     .post(userController.validate('create'), userController.createData) 
 //-------------------- AUTH Route ---------------------------------------------
