@@ -163,9 +163,11 @@ exports.createLogin  =  async function(req, res){
             };
         }
     }
-
 }
 
+exports.changePassword     =  function(req, res){
+    
+}
 
 exports.getData     =  function(req, res){
     var dataRecord  = [];
