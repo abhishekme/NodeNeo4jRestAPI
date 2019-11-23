@@ -156,6 +156,10 @@ exports.createLogin  =  async(req, res) => {
                                                 password: result.records[0]._fields[0].properties.password
                                             }
                         var dbPassword = result.records[0]._fields[0].properties.password;
+                        var hw = encryption.encrypt("hello world")
+                        // outputs hello world
+                        console.log("hellow world", " -- ",hw," :: ", encryption.decrypt(hw));
+                        console.log('Decrypt password: ', encryption.decrypt(dbPassword), " :: ", dbPassword);
                         if(encryption.decrypt(dbPassword) != postBody.password){
                             return res.status(400).json({ message: variableDefined.variables.validation_required.password_invalid, HTTP_Status:400, APP_Status : 0,record: foundRec });
                         }
@@ -230,7 +234,7 @@ exports.changePassword  = async(req, res) => {
             }            
             var UserNewPassword    =  encryption.encrypt(postBody.new_password);
             var UserOldPassword    =  encryption.encrypt(postBody.old_password);
-            //console.log('Oldpassword ',UserOldPassword," :: ", UserNewPassword);
+            console.log('Oldpassword ',UserOldPassword," :: ", UserNewPassword);
             //console.log("new password " , " :: ", UserNewPassword , " Decrypt ", encryption.decrypt(DBPassword));
             
             if(postBody.old_password == postBody.new_password){
@@ -291,8 +295,7 @@ exports.createData  =  async(req, res) => {
 
     if(typeof postBody === 'object'){
         if(postBody.password != undefined){
-            var hashPassword = theContr.hashPassword(postBody.password);
-            if(hashPassword) postBody.password = hashPassword;
+            var hashPassword = encryption.encrypt(postBody.password);
          }
         
         //bodyJson['idParam']             = uuidv1(); 
@@ -300,7 +303,7 @@ exports.createData  =  async(req, res) => {
         bodyJson['lastNameParam']       = req.body.last_name;
         bodyJson['nameParam']           = req.body.first_name + ' ' + req.body.last_name;
         bodyJson['emailParam']          = req.body.email;
-        bodyJson['passwordParam']       = req.body.password;
+        bodyJson['passwordParam']       = hashPassword;
         bodyJson['usernameParam']       = req.body.username;
 
         var graphMatchQL    = "MATCH (n:User) WHERE (n.email = $emailParam OR n.username = $usernameParam) RETURN n";
@@ -320,6 +323,9 @@ exports.createData  =  async(req, res) => {
                     return res.status(409).json({ message: variableDefined.variables.record_exists, status:0, HTTP_Status:409, record: foundRec});
                 }                
             });
+        }
+        catch(err){
+            console.log('Unexceptional DB Error');
         }
         finally{
             //Do the needful
