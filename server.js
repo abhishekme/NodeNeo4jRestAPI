@@ -5,7 +5,7 @@ const cors              = require('cors');
 const bodyParser        = require("body-parser");
 var routes              = require('./api/routes/apiRoutes.js'); //importing route
 const app               = express();
-
+const path = require('path');
 
 /*const { ApolloServer } = require('apollo-server')
 const typeDefs = require('./schema')
@@ -33,8 +33,7 @@ app.use(express.urlencoded());
 app.use(bodyParser());
 app.use(bodyParser.json({limit:'1mb'}));
 app.use(bodyParser.urlencoded({extended:true}));
-
-
+app.use('/', express.static('public/'));    //Allow access uploaded image outside
 
 // Root resolver
 // var root = {
@@ -46,7 +45,7 @@ app.use(bodyParser.urlencoded({extended:true}));
 // }));
 
 
-app.use(express.static("app/public"));  //use user upload section
+//app.use(express.static("app/public"));  //use user upload section
 routes(app);
 
  app.listen(8085, () => {

@@ -11,10 +11,8 @@ const encryption                = require("../utilities/encrypt");
 const crypto = require('crypto');
 const key = crypto.randomBytes(32);
 const iv = crypto.randomBytes(16);
-//const theUserModel              = require('../models/userModel');
 
 var passwordValidator           = require('password-validator');
-//var uuidv1                    = require('uuid/v1') ;
 var bCrypt                      = require('bcrypt');
 var userController              = require('./user');
 var theContr                    = userController;
@@ -23,14 +21,7 @@ var schemaPassword              = new passwordValidator();
 //-----------------------------------------------------------------------
 //---------------- API Required Field Validation ------------------------
 //-----------------------------------------------------------------------
-exports.validate = (method) => {
-    /*
-    body('password')  
-    .exists().withMessage(variableDefined.variables.validation_required.password_required)
-    .isLength({ min: 5, max:15 }).withMessage(variableDefined.variables.validation_required.password_strength_step1)
-    .matches(/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])[0-9a-zA-Z][!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]{5,}$/, "i").withMessage(variableDefined.variables.validation_required.password_strength_step2),
-    */
-
+exports.validate = (method) => {    
     switch (method) {
       case 'create' : {
        return [ 
@@ -76,12 +67,10 @@ exports.validate = (method) => {
     //Password checking
     if(fromSrc != undefined && (fromSrc == 'create' || fromSrc == 'update' || fromSrc == 'change-password')){
         var getPassword = '';
-
         getPassword = req.body.password;
         if(fromSrc == 'change-password'){
             getPassword = req.body.new_password;
-        }
-        
+        }        
         schemaPassword
             .is().min(5)
             .is().max(15)
@@ -100,7 +89,6 @@ exports.validate = (method) => {
         }
     }    
     //Password checking
-
     console.log('### API Validation: ', errors);
     errors.array().forEach(error => {
         let found = validationErr.filter(errItem => error.param === errItem.param);
@@ -125,21 +113,19 @@ exports.hashPassword  = function(password){
     var saltRounds = 10;
     return bCrypt.hashSync(password, saltRounds);
 }
-//(DBPassword, Userpassword)
 exports.validPassword = function(Userpassword, DBPassword) {
     console.log('user pass/db pass: ', theContr.hashPassword(Userpassword), " - ", DBPassword);
     return bCrypt.compareSync(DBPassword, theContr.hashPassword(Userpassword));
 }
 
-exports.createLogin  =  async(req, res) => {
-    var bodyJson    = {};
-    var postBody    = req.body || null;
-    var findRecord  = null;
+exports.createLogin     =  async(req, res) => {
+    var bodyJson        = {};
+    var postBody        = req.body || null;
+    var findRecord      = null;
     //Add required validation
-    var validReturn   = theContr.apiValidation(req, res);
+    var validReturn     = theContr.apiValidation(req, res);
     if(validReturn) return;
-
-    //res.setHeader( 'Access-Control-Allow-Headers', 'Accept,Accept-Language,Content-Language,Content-Type');
+    res.setHeader( 'Access-Control-Allow-Headers', 'Accept,Accept-Language,Content-Language,Content-Type');
 
     if(typeof postBody === 'object'){
         bodyJson['emailParam']  = postBody.email;
@@ -152,20 +138,26 @@ exports.createLogin  =  async(req, res) => {
                 .then(function (result){                    
                     findRecord = 0;
                     if(result.records != undefined && result.records.length){
-                        //console.log("Exists Records", result.records[0]._fields[0] );
+                        console.log("Exists Records", result.records[0]._fields[0] );
                         findRecord = 1;
                         var foundRec    =   {
                                                 id: (result.records[0]._fields[0].identity.low), 
                                                 username:result.records[0]._fields[0].properties.username,
                                                 password: result.records[0]._fields[0].properties.password
                                             }
-                        var dbPassword = result.records[0]._fields[0].properties.password;
-                        var hw = encryption.encrypt("hello world")
+                        var dbPassword       =  result.records[0]._fields[0].properties.password;
+                        var isAdminValue     =  result.records[0]._fields[0].properties.isAdmin;
+
+                        console.log('isAdmin value: ', isAdminValue);
+                        //var hw = encryption.encrypt("hello world")
                         // outputs hello world
-                        console.log("hellow world", " -- ",hw," :: ", encryption.decrypt(hw));
-                        console.log('Decrypt password: ', encryption.decrypt(dbPassword), " :: ", dbPassword);
+                        //console.log("hellow world", " -- ",hw," :: ", encryption.decrypt(hw));
+                        //console.log('Decrypt password: ', encryption.decrypt(dbPassword), " :: ", dbPassword);
                         if(encryption.decrypt(dbPassword) != postBody.password){
                             return res.status(400).json({ message: variableDefined.variables.validation_required.password_invalid, HTTP_Status:400, APP_Status : 0,record: foundRec });
+                        }
+                         if(isAdminValue <=0){
+                            return res.status(400).json({ message: variableDefined.variables.validation_required.unauthorize_login, HTTP_Status:400, APP_Status : 0,record: foundRec });
                         }
                         //Found valid user and allow for login with token
                         let token = jwt.sign(
@@ -215,6 +207,7 @@ exports.changePassword  = async(req, res) => {
         //Get Record By Email
         bodyJson['emailParam']          = userRecord.email;
         var graphMatchQL    = "MATCH (n:User) WHERE (n.email = $emailParam) RETURN n";
+
         try{
         await theUser.neo4J 
             .run(graphMatchQL, bodyJson)
@@ -232,6 +225,8 @@ exports.changePassword  = async(req, res) => {
         finally{
             //Do the needful
         };
+
+
         if(typeof foundRec === 'object' && foundRec != null){
             //console.log('Found Record: ', foundRec);
             var DBPassword = foundRec.properties.password;
@@ -267,14 +262,16 @@ exports.changePassword  = async(req, res) => {
                 //Do the needful
             };
 
+        }else{
+            return res.status(409).json({ message: variableDefined.variables.validation_required.unauthorize_change_password, HTTP_Status:200, APP_Status : 1,record: foundRec });
         } 
 
     }
 }
 
-exports.getAwardData     =  function(req, res){
-    var dataRecord  = [];
-    var graphQL    = "MATCH (n:AWARD) RETURN n";
+exports.getAwardData    =  function(req, res){
+    var dataRecord      = [];
+    var graphQL         = "MATCH (n:AWARD) RETURN n";
     theUser.neo4J 
            .run(graphQL) 
            .then(function (result){
@@ -294,24 +291,48 @@ exports.getAwardData     =  function(req, res){
         theUser.neo4J.close();
 }
 
-exports.getUserCount     =  function(req, res){
-    var dataRecord  = {};
-    var graphQL    = "MATCH (n:User) RETURN COUNT(n)";
+exports.getDashboardCount    =  function(req, res){
+    var dataRecord      = {};
+    var graphQL         = '';
 
+    var getparam        = req.query.type || null;
+    switch(getparam){
+        case 'user':
+        graphQL         = "MATCH (n:User) RETURN COUNT(n)";
+        break;
+        case 'award':
+        graphQL         = "MATCH (n:AWARD) RETURN COUNT(n)";
+        break;
+        case 'employ':
+        graphQL         = "MATCH (n:EMPLOYMENT) RETURN COUNT(n)";
+        break;
+        case 'person':
+        graphQL         = "MATCH (n:PERSON) RETURN COUNT(n)";
+        break;
+
+        default:
+        return res.status(400).json({ message: 'Please enter type properly[user | award | employ | person]', status:0 });
+        break;
+    }
+    // if(getparam != null && getparam.type =='user'){
+    //     //console.log('Getting param....', getparam);
+    //     graphQL         = "MATCH (n:User) RETURN COUNT(n)";
+    // }
+    //return;
     res.setHeader( 'Access-Control-Allow-Headers', 'Accept,Accept-Language,Content-Language,Content-Type');
-    theUser.neo4J 
-           .run(graphQL) 
+    theUser.neo4J
+           .run(graphQL)
            .then(function (result){
                 result.records.forEach(function(record){
-                    console.log(record._fields[0].low); 
-                    dataRecord['COUNT_USER'] = record._fields[0].low;
+                    //console.log(record._fields[0].low); 
+                    dataRecord['COUNT_RECORD'] = record._fields[0].low;
                    //dataRecord.push({COUNT_USER : record._fields[0].low});
-               });              
-               return res.status(200).json({ message: variableDefined.variables.listing_record, status:1, record:dataRecord });
-           })      
+               });
+               return res.status(200).json({ message: variableDefined.variables.count_record, status:1, record:dataRecord });
+           })
            .catch(function(err){
             return res.status(400).json({ message: variableDefined.variables.unhandledError, status:0, error:err });
-        });           
+        });
         theUser.neo4J.close();
 }
 
@@ -354,15 +375,15 @@ exports.createData  =  async(req, res) => {
         bodyJson['lastNameParam']       = req.body.last_name;
         bodyJson['nameParam']           = req.body.first_name + ' ' + req.body.last_name;
         bodyJson['emailParam']          = req.body.email;
+        bodyJson['isAdminParam']        = req.body.isAdmin;
         bodyJson['passwordParam']       = hashPassword;
         bodyJson['usernameParam']       = req.body.username;
 
-        var graphMatchQL    = "MATCH (n:User) WHERE (n.email = $emailParam OR n.username = $usernameParam) RETURN n";
+        var graphMatchQL                = "MATCH (n:User) WHERE (n.email = $emailParam OR n.username = $usernameParam) RETURN n";
         try{
         await theUser.neo4J 
-            .run(graphMatchQL, bodyJson) 
+            .run(graphMatchQL, bodyJson)
             .then(function (result){
-                
                 findRecord = 0;
                 if(result.records != undefined && result.records.length){
                     console.log("Exists Records", result.records[0]._fields[0] );
@@ -382,19 +403,11 @@ exports.createData  =  async(req, res) => {
             //Do the needful
         };
     }
-    //,email:{email}, password:{password}
-    //bodyJson['nameParam']   =   nameParam;
-    //bodyJson['email']       =   'suman.sahoo@navsoft.in';
-    //bodyJson['password']    =   'Suman!1985';
-    //CREATE (n:User {name:'Kaustav-navsoft'})
-    //.run(graphQL, bodyJson ) 
-    //.run('CREATE (n:User {name: {nameParam}})', { nameParam: nameParam })     //Run
-
     if(findRecord != null && !findRecord){
-        var graphQL    = "CREATE ( n:User { name:$nameParam, first_name: $firstNameParam, last_name: $lastNameParam,username: $usernameParam, email: $emailParam,password: $passwordParam })";
+        var graphQL    = "CREATE (n:User { name:$nameParam, isAdmin:$isAdminParam, first_name: $firstNameParam, last_name: $lastNameParam,username: $usernameParam, email: $emailParam,password: $passwordParam })";
         theUser.neo4J
-            .run(graphQL, bodyJson)           
-            .then(function (result){                            
+            .run(graphQL, bodyJson)
+            .then(function (result){
                console.log("Insert Record", result);
                 return res.status(400).json({ message: variableDefined.variables.insert_record, status:1, record:result.summary });
            })

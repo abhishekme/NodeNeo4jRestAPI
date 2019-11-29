@@ -30,6 +30,8 @@ module.exports  =
                 "email_or_username_exists"      : "Username/Email Exists! please try another",
                 "email_not_exists"              : "Email Not Exists!",
                 "password_invalid"              : "Password is invalid, please try again",
+                "unauthorize_login"             : "You Are not authorize user to Login",
+                "unauthorize_change_password"   : "You Are not authorize user to Change Password",
                 "password_equal"                : "New and Old Password should different",
                 "password_match"                : "Confirm Password is invalid, please try again",
                 "password_required"             : "Password is required",
@@ -62,6 +64,7 @@ module.exports  =
                 "csvFileImportError"            :   "Please upload only csv[.csv] file",
 
                 "listing_record"                :   "Listing Record",
+                "count_record"                  :   "Total Count",
                 "insert_record"                 :   "Record Inserted Successfully",
 
                 "unhandledError"                :   "Unhanled API server(neo4j) Error!"
