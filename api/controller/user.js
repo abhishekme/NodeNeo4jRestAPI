@@ -100,6 +100,8 @@ exports.validate = (method) => {
         }
     }    
     //Password checking
+
+    console.log('### API Validation: ', errors);
     errors.array().forEach(error => {
         let found = validationErr.filter(errItem => error.param === errItem.param);
         if (!found.length) {
@@ -136,6 +138,8 @@ exports.createLogin  =  async(req, res) => {
     //Add required validation
     var validReturn   = theContr.apiValidation(req, res);
     if(validReturn) return;
+
+    //res.setHeader( 'Access-Control-Allow-Headers', 'Accept,Accept-Language,Content-Language,Content-Type');
 
     if(typeof postBody === 'object'){
         bodyJson['emailParam']  = postBody.email;
@@ -221,6 +225,10 @@ exports.changePassword  = async(req, res) => {
                 }                
             });
         }
+        catch(err){
+            if(err)
+                return;
+        }
         finally{
             //Do the needful
         };
@@ -252,7 +260,7 @@ exports.changePassword  = async(req, res) => {
                 .then(function (result){                
                     //console.log('Update Password: ', result.records[0]._fields[0]);
                     foundRec = result.records[0]._fields[0].properties;
-                    return res.status(400).json({ message: variableDefined.variables.validation_required.password_update, HTTP_Status:200, APP_Status : 0,record: foundRec });
+                    return res.status(200).json({ message: variableDefined.variables.validation_required.password_update, HTTP_Status:200, APP_Status : 1,record: foundRec });
                 });
             }
             finally{
@@ -262,6 +270,49 @@ exports.changePassword  = async(req, res) => {
         } 
 
     }
+}
+
+exports.getAwardData     =  function(req, res){
+    var dataRecord  = [];
+    var graphQL    = "MATCH (n:AWARD) RETURN n";
+    theUser.neo4J 
+           .run(graphQL) 
+           .then(function (result){
+                //console.log('Record: ', result);
+                result.records.forEach(function(record){
+                    console.log(record._fields[0]);
+                    if(record._fields[0].identity.low > 0){
+                     record._fields[0].properties['id']  = record._fields[0].identity.low;  
+                    }   
+                   dataRecord.push(record._fields[0].properties);
+               });              
+               return res.status(200).json({ message: variableDefined.variables.listing_record, status:1, record:dataRecord });
+           })      
+           .catch(function(err){
+            return res.status(400).json({ message: variableDefined.variables.unhandledError, status:0, error:err });
+        });           
+        theUser.neo4J.close();
+}
+
+exports.getUserCount     =  function(req, res){
+    var dataRecord  = {};
+    var graphQL    = "MATCH (n:User) RETURN COUNT(n)";
+
+    res.setHeader( 'Access-Control-Allow-Headers', 'Accept,Accept-Language,Content-Language,Content-Type');
+    theUser.neo4J 
+           .run(graphQL) 
+           .then(function (result){
+                result.records.forEach(function(record){
+                    console.log(record._fields[0].low); 
+                    dataRecord['COUNT_USER'] = record._fields[0].low;
+                   //dataRecord.push({COUNT_USER : record._fields[0].low});
+               });              
+               return res.status(200).json({ message: variableDefined.variables.listing_record, status:1, record:dataRecord });
+           })      
+           .catch(function(err){
+            return res.status(400).json({ message: variableDefined.variables.unhandledError, status:0, error:err });
+        });           
+        theUser.neo4J.close();
 }
 
 exports.getData     =  function(req, res){
@@ -278,7 +329,7 @@ exports.getData     =  function(req, res){
                     }   
                    dataRecord.push(record._fields[0].properties);
                });              
-               return res.status(400).json({ message: variableDefined.variables.listing_record, status:1, record:dataRecord });
+               return res.status(200).json({ message: variableDefined.variables.listing_record, status:1, record:dataRecord });
            })      
            .catch(function(err){
             return res.status(400).json({ message: variableDefined.variables.unhandledError, status:0, error:err });

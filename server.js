@@ -29,6 +29,13 @@ app.use(cors());    //Allow CORS
 //Application session
 //app.use(express.json());    //{ extended: false }
 app.use(express.urlencoded());
+
+app.use(bodyParser());
+app.use(bodyParser.json({limit:'1mb'}));
+app.use(bodyParser.urlencoded({extended:true}));
+
+
+
 // Root resolver
 // var root = {
 //     message: () => 'Hello World!' 

@@ -19,7 +19,6 @@ if(token != undefined && userId > 0){
                 return res.status(400).json({ message: variableDefined.auth.token_invalid_user, HTTP_Status:400, APP_Status : 0 });
             }
             req.decoded = decoded;
-            //console.log(decoded);
             return next();
         }
         });
