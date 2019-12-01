@@ -2,26 +2,31 @@
 
 var userController      = require('../controller/user');
 var constants           = require('../../config/constants');
-var middleware          = require('../../middleware/middleware');
+var middlewareAdmin     = require('../../middleware/middleware-admin');
 const variableDefined   = constants[0].application;
+const apiPrefix         = variableDefined.apiPrefix;
 
+const adminPrefix       = apiPrefix + 'admin';
+const sitePrefix        = apiPrefix + 'front';
 module.exports = function(app) {
-//
-app.route('/get-user')
-    .get(middleware.checkToken, userController.getData)
-app.route('/total-dashboard-count')
-    .get(middleware.checkToken, userController.getDashboardCount)
-app.route('/get-award')
+
+
+//ADMIN ROUTES
+app.route(adminPrefix + '/get-user-list')
+    .get(middlewareAdmin.checkToken, userController.getData)
+app.route(adminPrefix + '/total-dashboard-count')
+    .get(middlewareAdmin.checkToken, userController.getDashboardCount)
+app.route(adminPrefix + '/get-award')
     .get(userController.getAwardData)
-app.route('/change-password')
-    .post(middleware.checkToken, userController.validate('changePassword'), userController.changePassword)
-app.route('/create-user')
+app.route(adminPrefix + '/change-password')
+    .post(middlewareAdmin.checkToken, userController.validate('changePassword'), userController.changePassword)
+app.route(adminPrefix + '/create-user')
     .post(userController.validate('create'), userController.createData)
 //-------------------- AUTH Route -------------------------------------
-app.route('/user-login')
+app.route(adminPrefix + '/admin-login')
     .post(userController.validate('login'),userController.createLogin)  
 //-------------------- DO OTHER SECTION ROUTE ------------------------
 
-
+//SITE ROUTES
 
 };

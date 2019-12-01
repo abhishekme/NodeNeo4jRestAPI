@@ -4,7 +4,8 @@ module.exports  =
 [
     {
         "application" : 
-        {   
+        {
+            "apiPrefix"                         : "/api/",
             "serverPath" : {
                 "mediaDir"                      : "./public/",
                 "userUploadDir"                 : "./public/user-media/",

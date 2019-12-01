@@ -1,7 +1,7 @@
-const jwt                   = require('jsonwebtoken');
+const jwt                 = require('jsonwebtoken');
 const env                 = process.env.NODE_ENV || 'development';
 const config              = require('../config/config.json')[env];
-var constants             = require('../config/constants');
+const constants           = require('../config/constants');
 const variableDefined     = constants[0].application;
 
 let checkToken  = (req, res, next) => {

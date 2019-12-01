@@ -338,7 +338,7 @@ exports.getDashboardCount    =  function(req, res){
 
 exports.getData     =  function(req, res){
     var dataRecord  = [];
-    var graphQL    = "MATCH (n:User) RETURN n LIMIT 25";
+    var graphQL    = "MATCH (n:User) WHERE(n.isAdmin = '0') RETURN n ORDER BY n.identity.low DESC LIMIT 100";
 
     theUser.neo4J 
            .run(graphQL) 
