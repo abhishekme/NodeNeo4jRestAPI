@@ -2,8 +2,8 @@
   "development": {
     "username": "neo4j",
     "password": "root",
-    "host": "bolt://192.168.1.101:7687",
-    "base_url": "http://192.168.1.101:7474",
+    "host": "bolt://192.168.3.36:7687",
+    "base_url": "http://192.168.3.36:7474",
     "api_path": "/api/v0",
     "jwtTokenKey": "scottBengalTiger"
   },

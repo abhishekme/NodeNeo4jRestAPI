@@ -67,8 +67,14 @@ module.exports  =
                 "listing_record"                :   "Listing Record",
                 "count_record"                  :   "Total Count",
                 "insert_record"                 :   "Record Inserted Successfully",
+                "unhandledError"                :   "Unhanled API server(neo4j) Error!",
 
-                "unhandledError"                :   "Unhanled API server(neo4j) Error!"
+                "person"                        : {
+                "skip_limit_required"           :   "Skip and Limit is required, should be number",
+
+                }
+
+
             },
             "exportTable" : {
                 "userCsvHeader" : [
