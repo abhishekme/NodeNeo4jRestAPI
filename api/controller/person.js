@@ -90,20 +90,27 @@ exports.getListData     =  async(req, res) => {
     var postBody        = req.body || null;
     var skipNumber      = 0;
     var limitNumber     = 10;
+    var srchKey         = '';
 
     if(typeof postBody !== undefined){        
 
         if(postBody.skip != undefined && postBody.limit != undefined){
             skipNumber      =   postBody.skip;
             limitNumber     =   postBody.limit;
+            if(postBody.srchKey != undefined && postBody.srchKey != ''){
+                srchKey = postBody.srchKey;
+                bodyJson['srchKeyParam'] = srchKey;
+            }
         }else{
             return res.status(409).json({ message: variableDefined.variables.person.skip_limit_required, status:0 }); 
         }
     }
     bodyJson['skipParam']          = parseInt(skipNumber);
     bodyJson['limitParam']         = parseInt(limitNumber);
-    
     var graphQL         = "MATCH (n:PERSON) RETURN n ORDER BY n.cognitoUserName DESC SKIP $skipParam LIMIT $limitParam";
+    if(postBody.srchKey != undefined && postBody.srchKey != ''){
+    var graphQL         = "MATCH (n:PERSON) WHERE (n.email = $srchKeyParam) RETURN n ORDER BY n.cognitoUserName DESC SKIP $skipParam LIMIT $limitParam";
+    }    
     thePerson.neo4J 
            .run(graphQL, bodyJson)
            .then(function (result){
@@ -116,7 +123,7 @@ exports.getListData     =  async(req, res) => {
                     }
                    dataRecord.push(record._fields[0].properties);
                });              
-               return res.status(200).json({ message: variableDefined.variables.listing_record, status:1, record:dataRecord });
+               return res.status(200).json({ message: variableDefined.variables.listing_record, status:1, record:dataRecord, totalRecord:dataRecord.length });
            })      
            .catch(function(err){
             return res.status(400).json({ message: variableDefined.variables.unhandledError, status:0, error:err });

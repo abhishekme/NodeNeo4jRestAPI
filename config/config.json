@@ -5,7 +5,8 @@
     "host": "bolt://192.168.3.36:7687",
     "base_url": "http://192.168.3.36:7474",
     "api_path": "/api/v0",
-    "jwtTokenKey": "scottBengalTiger"
+    "jwtTokenKey": "scottBengalTiger",
+    "iss": "192.168.3.36"
   },
   "production": {
     "username": "root",
