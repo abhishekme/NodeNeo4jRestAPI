@@ -91,12 +91,17 @@ exports.getListData     =  async(req, res) => {
     var skipNumber      = 0;
     var limitNumber     = 10;
     var srchKey         = '';
+    var sortByField     = '';
+    var sortByDir       = '';
 
     if(typeof postBody !== undefined){        
 
         if(postBody.skip != undefined && postBody.limit != undefined){
             skipNumber      =   postBody.skip;
             limitNumber     =   postBody.limit;
+            sortByField     =   postBody.sortByField;
+            sortByDir       =   postBody.sortByDir;
+
             if(postBody.srchKey != undefined && postBody.srchKey != ''){
                 srchKey = postBody.srchKey;
                 bodyJson['srchKeyParam'] = srchKey;
@@ -107,9 +112,14 @@ exports.getListData     =  async(req, res) => {
     }
     bodyJson['skipParam']          = parseInt(skipNumber);
     bodyJson['limitParam']         = parseInt(limitNumber);
-    var graphQL         = "MATCH (n:PERSON) RETURN n ORDER BY n.cognitoUserName DESC SKIP $skipParam LIMIT $limitParam";
+    bodyJson['sortByFieldParam']   = (sortByField);
+    bodyJson['sortByDirParam']     = (sortByDir);
+
+    var graphQL             = "MATCH (n:PERSON) RETURN n ORDER BY n.firstName ASC SKIP $skipParam LIMIT $limitParam";
+    //var graphQL             = "MATCH (n:PERSON) RETURN n SKIP $skipParam LIMIT $limitParam ";// + "$sortByField $sortByDir";
+
     if(postBody.srchKey != undefined && postBody.srchKey != ''){
-    var graphQL         = "MATCH (n:PERSON) WHERE (n.email = $srchKeyParam) RETURN n ORDER BY n.cognitoUserName DESC SKIP $skipParam LIMIT $limitParam";
+    var graphQL         = "MATCH (n:PERSON) WHERE (n.email = $srchKeyParam) RETURN n ORDER BY n.firstName DESC SKIP $skipParam LIMIT $limitParam";
     }    
     thePerson.neo4J 
            .run(graphQL, bodyJson)
