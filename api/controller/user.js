@@ -50,10 +50,6 @@ exports.validate = (method) => {
            body('first_name', variableDefined.variables.validation_required.first_name_required).exists(),
            body('last_name', variableDefined.variables.validation_required.last_name_required).exists(),
            body('username', variableDefined.variables.validation_required.username_required).exists(),
-           body('password')  
-              .exists().withMessage(variableDefined.variables.validation_required.password_required)
-              .isLength({ min: 5, max:15 }).withMessage(variableDefined.variables.validation_required.password_strength_step1)
-              .matches(/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])[0-9a-zA-Z]{5,15}$/).withMessage(variableDefined.variables.validation_required.password_strength_step2),
            body('email', variableDefined.variables.validation_required.email_required).exists().isEmail()
           ]   
        }

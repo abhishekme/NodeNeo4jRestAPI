@@ -30,8 +30,12 @@ app.route(adminPrefix + '/get-person-total')
     .get(middlewareAdmin.checkToken, personController.getCountData)
 app.route(adminPrefix + '/get-person-list')
     .post(middlewareAdmin.checkToken, personController.getListData)
-
-
+app.route(adminPrefix + '/create-person')
+    .post(middlewareAdmin.checkToken, personController.validate('create'), personController.createPerson)
+app.route(adminPrefix + '/edit-person')
+    .post(middlewareAdmin.checkToken, personController.editPerson)
+app.route(adminPrefix + '/update-person')
+    .post(middlewareAdmin.checkToken, personController.validate('update'), personController.updatePerson)
 
 //-------------------- AUTH Route -------------------------------------
 app.route(adminPrefix + '/admin-login')
